@@ -1,4 +1,4 @@
 -- Tambahkan Place ID di bawah ini, satu per baris
 -- Hapus baris komentar ini jika mau, tidak berpengaruh
-12345678
+80666734041814
 98765432
