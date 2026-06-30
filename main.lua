@@ -28,11 +28,11 @@ local function isLicensed()
 end
 
 if not isLicensed() then
-	warn("[DJsistem] tidak memiliki lisensi. Script dihentikan.")
+	warn("[DJsistem] Place ID " .. tostring(game.PlaceId) .. " tidak memiliki lisensi. Script dihentikan.")
 	return
 end
 
-print("[DJsistem] Lisensi valid!")
+print("[DJsistem] Lisensi valid! Place ID: " .. tostring(game.PlaceId))
 
 -- ============================================================
 -- HOLO MUSIC SERVER  v4.5  — Full Sync
