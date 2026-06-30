@@ -28,11 +28,11 @@ local function isLicensed()
 end
 
 if not isLicensed() then
-	warn("[DJsistem] Place ID " .. tostring(game.PlaceId) .. " tidak memiliki lisensi. Script dihentikan.")
+	warn("[DJsistem] tidak memiliki lisensi. Script dihentikan.")
 	return
 end
 
-print("[DJsistem] Lisensi valid! Place ID: " .. tostring(game.PlaceId))
+print("[DJsistem] Lisensi valid!")
 
 -- ============================================================
 -- HOLO MUSIC SERVER  v4.5  — Full Sync
@@ -620,18 +620,6 @@ RE_Command.OnServerEvent:Connect(function(player, data)
 		if tonumber(payload.umid) then target.umid = clamp01(payload.umid) end
 		if tonumber(payload.treb) then target.treb = clamp01(payload.treb) end
 		if tonumber(payload.air)  then target.air  = clamp01(payload.air)  end
-		if tonumber(payload.low)  then
-			target.sub  = clamp01(payload.low)
-			target.bass = clamp01(payload.low)
-		end
-		if tonumber(payload.mid) and not tonumber(payload.lmid) then
-			target.lmid = clamp01(payload.mid)
-		end
-		if tonumber(payload.high) then
-			target.umid = clamp01(payload.high)
-			target.treb = clamp01(payload.high)
-			target.air  = clamp01(payload.high)
-		end
 		applyEffects(); broadcast(); return
 	end
 
