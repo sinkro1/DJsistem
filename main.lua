@@ -208,6 +208,10 @@ local cuePointsB     = { nil, nil, nil, nil }
 local djActive       = false
 
 local eq7 = { sub=0.5, bass=0.5, lmid=0.5, mid=0.5, umid=0.5, treb=0.5, air=0.5 }
+local eq7B = { sub=0.5, bass=0.5, lmid=0.5, mid=0.5, umid=0.5, treb=0.5, air=0.5 }
+local eqLowB  = 0.5
+local eqMidB  = 0.5
+local eqHighB = 0.5
 
 local deckBLoaded    = false
 local deckBPlaying   = false
@@ -263,15 +267,15 @@ end
 
 local function deckBHasEQ()
 	return (bassLevelB > 0.01)
-		or math.abs(eqLow  - 0.5) > 0.01
-		or math.abs(eqMid  - 0.5) > 0.01
-		or math.abs(eqHigh - 0.5) > 0.01
+		or math.abs(eqLowB  - 0.5) > 0.01
+		or math.abs(eqMidB  - 0.5) > 0.01
+		or math.abs(eqHighB - 0.5) > 0.01
 end
 
-local function calc3BandFromEq7()
-	local low  = (eq7.sub  + eq7.bass) / 2
-	local mid  = (eq7.lmid + eq7.mid)  / 2
-	local high = (eq7.umid + eq7.treb + eq7.air) / 3
+local function calc3BandFromEq7(t)
+	local low  = (t.sub  + t.bass) / 2
+	local mid  = (t.lmid + t.mid)  / 2
+	local high = (t.umid + t.treb + t.air) / 3
 	return low, mid, high
 end
 
@@ -282,10 +286,15 @@ local function applyEffects()
 	DeckA.PlaybackSpeed = math.clamp(deckABaseSpeed * deckASpeed, 0.5, 2)
 	DeckB.PlaybackSpeed = math.clamp(deckBBaseSpeed * deckBSpeed, 0.5, 2)
 
-	local low, mid, high = calc3BandFromEq7()
+	local low, mid, high = calc3BandFromEq7(eq7)
 	eqLow  = low
 	eqMid  = mid
 	eqHigh = high
+
+	local lowB, midB, highB = calc3BandFromEq7(eq7B)
+	eqLowB  = lowB
+	eqMidB  = midB
+	eqHighB = highB
 
 	FX_A_Reverb.Enabled  = reverbLevelA > 0.01
 	FX_A_Reverb.WetLevel = reverbWet(reverbLevelA)
@@ -298,9 +307,9 @@ local function applyEffects()
 
 	FX_B_Reverb.Enabled  = reverbLevelB > 0.01
 	FX_B_Reverb.WetLevel = reverbWet(reverbLevelB)
-	FX_B_EQ.LowGain      = math.clamp(eqGain(eqLow) + bassBoost(bassLevelB), -12, 12)
-	FX_B_EQ.MidGain      = eqGain(eqMid)
-	FX_B_EQ.HighGain     = eqGain(eqHigh)
+	FX_B_EQ.LowGain      = math.clamp(eqGain(eqLowB) + bassBoost(bassLevelB), -12, 12)
+	FX_B_EQ.MidGain      = eqGain(eqMidB)
+	FX_B_EQ.HighGain     = eqGain(eqHighB)
 	FX_B_EQ.Enabled      = deckBHasEQ()
 	FX_B_Echo.Enabled    = echoB
 	FX_B_Flange.Enabled  = flangeB
@@ -358,6 +367,9 @@ local function buildState()
 		eqLow          = eqLow,
 		eqMid          = eqMid,
 		eqHigh         = eqHigh,
+		eqLowB         = eqLowB,
+		eqMidB         = eqMidB,
+		eqHighB        = eqHighB,
 		eq7sub         = eq7.sub,
 		eq7bass        = eq7.bass,
 		eq7lmid        = eq7.lmid,
@@ -365,6 +377,13 @@ local function buildState()
 		eq7umid        = eq7.umid,
 		eq7treb        = eq7.treb,
 		eq7air         = eq7.air,
+		eq7subB        = eq7B.sub,
+		eq7bassB       = eq7B.bass,
+		eq7lmidB       = eq7B.lmid,
+		eq7midB        = eq7B.mid,
+		eq7umidB       = eq7B.umid,
+		eq7trebB       = eq7B.treb,
+		eq7airB        = eq7B.air,
 		echoA          = echoA,
 		flangeA        = flangeA,
 		strobeA        = strobeA,
@@ -521,6 +540,7 @@ local function resetAllSettings()
 	reverbLevelA = 0; bassLevelA = 0
 	reverbLevelB = 0; bassLevelB = 0
 	eq7 = { sub=0.5, bass=0.5, lmid=0.5, mid=0.5, umid=0.5, treb=0.5, air=0.5 }
+	eq7B = { sub=0.5, bass=0.5, lmid=0.5, mid=0.5, umid=0.5, treb=0.5, air=0.5 }
 	echoA = false; flangeA = false; strobeA = false
 	echoB = false; flangeB = false; strobeB = false
 	echoLevelA = 0; flangeLevelA = 0; strobeLevelA = 0
@@ -592,21 +612,25 @@ RE_Command.OnServerEvent:Connect(function(player, data)
 
 	if action == "SetEQ" then
 		if typeof(payload) ~= "table" then return end
-		if tonumber(payload.sub)  then eq7.sub  = clamp01(payload.sub)  end
-		if tonumber(payload.bass) then eq7.bass = clamp01(payload.bass) end
-		if tonumber(payload.lmid) then eq7.lmid = clamp01(payload.lmid) end
-		if tonumber(payload.mid)  then eq7.mid  = clamp01(payload.mid)  end
-		if tonumber(payload.umid) then eq7.umid = clamp01(payload.umid) end
-		if tonumber(payload.treb) then eq7.treb = clamp01(payload.treb) end
-		if tonumber(payload.air)  then eq7.air  = clamp01(payload.air)  end
+		local target = (tostring(payload.deck) == "B") and eq7B or eq7
+		if tonumber(payload.sub)  then target.sub  = clamp01(payload.sub)  end
+		if tonumber(payload.bass) then target.bass = clamp01(payload.bass) end
+		if tonumber(payload.lmid) then target.lmid = clamp01(payload.lmid) end
+		if tonumber(payload.mid)  then target.mid  = clamp01(payload.mid)  end
+		if tonumber(payload.umid) then target.umid = clamp01(payload.umid) end
+		if tonumber(payload.treb) then target.treb = clamp01(payload.treb) end
+		if tonumber(payload.air)  then target.air  = clamp01(payload.air)  end
 		if tonumber(payload.low)  then
-			eq7.sub  = clamp01(payload.low)
-			eq7.bass = clamp01(payload.low)
+			target.sub  = clamp01(payload.low)
+			target.bass = clamp01(payload.low)
+		end
+		if tonumber(payload.mid) and not tonumber(payload.lmid) then
+			target.lmid = clamp01(payload.mid)
 		end
 		if tonumber(payload.high) then
-			eq7.umid = clamp01(payload.high)
-			eq7.treb = clamp01(payload.high)
-			eq7.air  = clamp01(payload.high)
+			target.umid = clamp01(payload.high)
+			target.treb = clamp01(payload.high)
+			target.air  = clamp01(payload.high)
 		end
 		applyEffects(); broadcast(); return
 	end
