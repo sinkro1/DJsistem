@@ -151,10 +151,18 @@ local function syncGlobalSound(source)
 		gs.Parent = workspace
 	end
 	gs.Volume = 0
+	local lastSoundId = ""
 	local function apply()
 		if not gs or not gs.Parent then return end
-		gs.SoundId       = source.SoundId
-		gs.TimePosition  = source.TimePosition
+		-- Hanya set SoundId jika benar-benar berubah (mencegah restart GlobalSound)
+		if source.SoundId ~= lastSoundId then
+			lastSoundId = source.SoundId
+			gs.SoundId = source.SoundId
+		end
+		-- Jangan set TimePosition jika GlobalSound sedang playing (mencegah seek/reset)
+		if not gs.IsPlaying then
+			gs.TimePosition = source.TimePosition
+		end
 		gs.PlaybackSpeed = source.PlaybackSpeed
 		gs.Looped        = source.Looped
 		gs.Volume        = 0
@@ -283,8 +291,8 @@ end
 -- APPLY EFFECTS & VOLUME
 -- ============================================================
 local function applyEffects()
-	DeckA.PlaybackSpeed = math.clamp(deckABaseSpeed * deckASpeed, 0.5, 2)
-	DeckB.PlaybackSpeed = math.clamp(deckBBaseSpeed * deckBSpeed, 0.5, 2)
+	DeckA.PlaybackSpeed = math.clamp(deckABaseSpeed * deckASpeed, 0.1, 2)
+	DeckB.PlaybackSpeed = math.clamp(deckBBaseSpeed * deckBSpeed, 0.1, 2)
 
 	local low, mid, high = calc3BandFromEq7(eq7)
 	eqLow  = low
@@ -456,7 +464,7 @@ local function playTrack(track)
 	DeckA.SoundId      = normalizeId(track.id)
 	DeckA.TimePosition = 0
 	DeckA:SetAttribute("NowTitle", normalizeTitle(track))
-	deckABaseSpeed = math.clamp(tonumber(track.speed) or 1, 0.5, 2)
+	deckABaseSpeed = math.clamp(tonumber(track.speed) or 1, 0.1, 2)
 	applyEffects()
 	applyVolume()
 	local ok = pcall(function() DeckA:Play() end)
@@ -516,7 +524,7 @@ local function loadDeckB(track)
 	deckBLoaded  = true
 	deckBPlaying = false
 	cuePointsB   = { nil, nil, nil, nil }
-	applyVolume(); broadcast()
+	applyEffects(); applyVolume(); broadcast()
 	task.spawn(function()
 		deckBPlaying = false
 		local tw = 0
@@ -583,22 +591,22 @@ RE_Command.OnServerEvent:Connect(function(player, data)
 	if action == "SetCrossfade" then crossfade = clamp01(payload); applyVolume(); broadcast(); return end
 
 	if action == "SetSpeed" then
-		deckASpeed = math.clamp(tonumber(payload) or 1, 0.5, 2)
+		deckASpeed = math.clamp(tonumber(payload) or 1, 0.1, 2)
 		applyEffects(); broadcast(); return
 	end
 	if action == "SetPitch" then
-		deckAPitch = math.clamp(tonumber(payload) or 1, 0.5, 2)
+		deckAPitch = math.clamp(tonumber(payload) or 1, 0.1, 2)
 		applyEffects(); broadcast(); return
 	end
 	if action == "SetDeckSpeed" then
 		if typeof(payload) ~= "table" then return end
-		local v = math.clamp(tonumber(payload.value) or 1, 0.5, 2)
+		local v = math.clamp(tonumber(payload.value) or 1, 0.1, 2)
 		if tostring(payload.deck) == "B" then deckBSpeed = v else deckASpeed = v end
 		applyEffects(); broadcast(); return
 	end
 	if action == "SetDeckPitch" then
 		if typeof(payload) ~= "table" then return end
-		local v = math.clamp(tonumber(payload.value) or 1, 0.5, 2)
+		local v = math.clamp(tonumber(payload.value) or 1, 0.1, 2)
 		if tostring(payload.deck) == "B" then deckBPitch = v else deckAPitch = v end
 		applyEffects(); broadcast(); return
 	end
@@ -748,7 +756,10 @@ RE_Command.OnServerEvent:Connect(function(player, data)
 		pausedPos     = 0
 		playGen      += 1
 		DeckA:Stop()
+		DeckA.SoundId = ""              -- ⬅ tambahkan ini
 		DeckA:SetAttribute("NowTitle", "")
+		cuePointsA = { nil, nil, nil, nil }  -- opsional: biar cue ikut kereset
+		applyVolume()
 		broadcast()
 		return
 	end
@@ -781,7 +792,7 @@ RE_Command.OnServerEvent:Connect(function(player, data)
 		nowPlayingBy = { userId = player.UserId, name = player.Name }
 		paused = false; playGen += 1
 		local gen = playGen
-		deckABaseSpeed = math.clamp(tonumber(payload.speed) or 1, 0.5, 2)
+		deckABaseSpeed = math.clamp(tonumber(payload.speed) or 1, 0.1, 2)
 		DeckA:Stop(); DeckA.SoundId = id; DeckA.TimePosition = 0
 		DeckA:SetAttribute("NowTitle", title)
 		cuePointsA = { nil, nil, nil, nil }
@@ -801,7 +812,7 @@ RE_Command.OnServerEvent:Connect(function(player, data)
 		if typeof(payload) ~= "table" then return end
 		local id = normalizeId(tostring(payload.id or ""))
 		if id ~= "" then
-			deckBBaseSpeed = math.clamp(tonumber(payload.speed) or 1, 0.5, 2)
+			deckBBaseSpeed = math.clamp(tonumber(payload.speed) or 1, 0.1, 2)
 			loadDeckB({ id = id, title = tostring(payload.title or ""), speed = tonumber(payload.speed) or 1 })
 		else
 			DeckB:Stop(); DeckB.SoundId = ""; DeckB.Volume = 0
