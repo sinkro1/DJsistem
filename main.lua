@@ -620,6 +620,21 @@ RE_Command.OnServerEvent:Connect(function(player, data)
 		if tonumber(payload.umid) then target.umid = clamp01(payload.umid) end
 		if tonumber(payload.treb) then target.treb = clamp01(payload.treb) end
 		if tonumber(payload.air)  then target.air  = clamp01(payload.air)  end
+
+		if tonumber(payload.low3) then
+			target.sub  = clamp01(payload.low3)
+			target.bass = clamp01(payload.low3)
+		end
+		if tonumber(payload.mid3) then
+			target.lmid = clamp01(payload.mid3)
+			target.mid  = clamp01(payload.mid3)
+		end
+		if tonumber(payload.high3) then
+			target.umid = clamp01(payload.high3)
+			target.treb = clamp01(payload.high3)
+			target.air  = clamp01(payload.high3)
+		end
+
 		applyEffects(); broadcast(); return
 	end
 
